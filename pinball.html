@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Ball Game</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            transition: background 0.5s, color 0.5s;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            margin: auto;
+            border: 2px solid white;
+            /* background: url('./images.jpg'); */
+            background-size: contain;
+        }
+
+        #score {
+            font-size: 20px;
+            margin-top: 10px;
+        }
+
+        #gameOver {
+            display: none;
+            font-size: 24px;
+            font-weight: bold;
+            color: red;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        #retryButton {
+            display: none;
+            font-size: 18px;
+            padding: 10px 20px;
+            margin-top: 10px;
+            background-color: #00FF00;
+            border: none;
+            cursor: pointer;
+        }
+
+
+        .light-theme .theme-button {
+            display: block;
+        }
+
+        .theme-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .dark-theme {
+            background: linear-gradient(to bottom, #0a0a23, #1a1a3b);
+            color: white;
+        }
+
+        .light-theme {
+            background: linear-gradient(to bottom, #ffffff, #c0b6b6, #c9ccbb);
+            color: black;
+        }
+
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            transition: background 0.5s, color 0.5s;
+        }
+
+        #startScreen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+        }
+
+        label {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        #difficultySelect {
+            padding: 10px;
+            font-size: 1.2rem;
+            border: 2px solid white;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: rgb(70, 255, 9);
+            outline: none;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        #difficultySelect:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        #startButton {
+            margin-top: 15px;
+            padding: 12px 20px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: white;
+            background: #ff6f61;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        #startButton:hover {
+            background: #ff3b30;
+            transform: scale(1.1);
+        }
+
+
+        .confetti {
+            position: absolute;
+            font-size: 30px;
+            opacity: 0.8;
+            animation: fall 3s linear infinite;
+        }
+
+        @keyframes fall {
+            from {
+                transform: translateY(-100px);
+            }
+
+            to {
+                transform: translateY(100vh);
+            }
+        }
+
+        .confetti2 {
+            position: absolute;
+            font-size: 30px;
+            opacity: 0.8;
+            animation: up 3s linear infinite;
+        }
+
+        @keyframes up {
+            from {
+                transform: translateY(100vh);
+            }
+
+            to {
+                transform: translateY(-100px);
+            }
+        }
+    </style>
+</head>
+
+<body class="dark-theme">
+    <button class="theme-button" onclick="toggleTheme()">☀️</button>
+    <h1 id="title">Ball Bounce Game</h1>
+    <div id="score">Score: 0</div>
+    <div id="startScreen">
+        <label for="difficultySelect">Choose Difficulty:</label>
+        <select id="difficultySelect">
+            <option value="">Select Level</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+            <option value="elite">Elite</option>
+        </select>
+        <button id="startButton">Start Game</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+    <div id="gameOver">GAME OVER!
+        <p id="finalScore">Final Score: 0</p>
+        <button id="retryButton">Retry</button>
+    </div>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreDisplay = document.getElementById("score");
+        const gameOverText = document.getElementById("gameOver");
+        const retryButton = document.getElementById("retryButton");
+        const themeButton = document.querySelector(".theme-button");
+        let width = window.innerWidth * 0.9;
+        let height = window.innerHeight * 0.7;
+        canvas.width = width;
+        canvas.height = height;
+
+        let x = canvas.width / 2;
+        let y = canvas.height - 200;
+        let dx = 3;
+        let dy = -3;
+        let ballRadius = 10;
+        let trampolineWidth = canvas.width * 0.2;
+        let trampolineX = (canvas.width - trampolineWidth) / 2;
+        let rightPressed = false;
+        let leftPressed = false;
+        let score = 0;
+        let gameOver = false;
+        let ballType = "⚽";  // Default football
+        let timeLeft = 60;
+
+
+        let gameStarted = false;
+
+        document.getElementById("startButton").addEventListener("click", function () {
+            let selectedDifficulty = document.getElementById("difficultySelect").value;
+
+            if (selectedDifficulty === "") {
+                alert("Please select a difficulty level to start the game!");
+                return;
+            }
+
+            document.getElementById("startScreen").style.display = "none"; // Hide start screen
+            gameStarted = true;
+            draw(); // Start the game
+        });
+
+        document.getElementById("retryButton").addEventListener("click", function () {
+            gameOver = false;
+            score = 0;
+            timeLeft = 60;
+            x = canvas.width / 2;
+            y = canvas.height - 200;
+            dx = 3;
+            dy = -3;
+
+            document.getElementById("gameOver").style.display = "none";
+            document.getElementById("retryButton").style.display = "none";
+            document.getElementById("finalScore").textContent = "Final Score: 0";
+
+            draw();
+        });
+
+
+        function updateTimer() {
+            if (timeLeft > 0) {
+                timeLeft--;
+            } else {
+                gameOver = true;
+                document.getElementById("finalScore").textContent = "Final Score: " + score;
+                document.getElementById("gameOver").style.display = "block";
+                document.getElementById("retryButton").style.display = "block";
+            }
+        }
+
+        setInterval(updateTimer, 1000);
+
+
+        // document.addEventListener("keydown", function (e) {
+        //     if (e.key === "1") ballType = "⚽";  // Football
+        //     if (e.key === "2") ballType = "🏀";  // Basketball
+        //     if (e.key === "3") ballType = "🏈";  // American Football
+        // });
+
+        function changeBallType() {
+            const ballTypes = ["⚽", "🏀", "🏈", "🎈", "🏉", "🪩"]; // Football, Basketball, American Football
+            ballType = ballTypes[Math.floor(Math.random() * ballTypes.length)];
+        }
+
+
+        function drawBall() {
+            ctx.font = "30px Arial";
+            ctx.fillText(ballType, x - 10, y + 10);
+        }
+
+        function increaseSpeed() {
+            let difficulty = document.getElementById("difficultySelect").value;
+
+            let speedBoost = {
+                easy: 1.05,   // Slight increase
+                medium: 1.08,  // Moderate increase
+                hard: 1.12,    // High increase
+                elite: 1.4    // Extreme increase
+            };
+
+            dx *= speedBoost[difficulty];
+            dy *= speedBoost[difficulty];
+        }
+
+
+
+        function drawTrampoline() {
+            let postWidth = canvas.width * 0.015;   // 1.5% of canvas width
+            let postHeight = canvas.height * 0.08;  // 8% of canvas height
+            let barHeight = canvas.height * 0.02;   // 2% of canvas height
+            let trampolineWidth = canvas.width * 0.25; // 25% of canvas width
+
+            ctx.fillStyle = "white";
+
+            // Left post
+            ctx.fillRect(trampolineX, canvas.height - postHeight, postWidth, postHeight);
+
+            // Top bar (crossbar)
+            ctx.fillRect(trampolineX, canvas.height - postHeight, trampolineWidth, barHeight);
+
+            // Right post
+            ctx.fillRect(trampolineX + trampolineWidth - postWidth, canvas.height - postHeight, postWidth, postHeight);
+        }
+
+
+        function createConfetti() {
+            for (let i = 0; i < 20; i++) {
+                let confetti2 = document.createElement("div");
+                confetti2.className = "confetti2";
+                confetti2.style.left = Math.random() * window.innerWidth + "px";
+                confetti2.style.top = Math.random() * -100 + "px";
+                confetti2.textContent = Math.random() > 0.5 ? ballType : ballType;
+                document.body.appendChild(confetti2);
+                setTimeout(() => confetti2.remove(), 3000);
+            }
+        }
+
+        function updateScore() {
+            scoreDisplay.textContent = "Score: " + score;
+        }
+
+        function draw() {
+            if (!gameStarted) return; // Don't run game loop if not started
+            if (gameOver) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBall();
+            drawTrampoline();
+            updateScore();
+
+            if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
+                dx = -dx;
+            }
+
+            if (y + dy < ballRadius) {
+                dy = -dy;
+            } else if (y + dy > canvas.height - ballRadius - 50) {
+                if (x > trampolineX && x < trampolineX + trampolineWidth) {
+                    dy = -dy;
+                    score++;
+                    dx *= 1.05;
+                    dy *= 1.05;
+                    increaseSpeed();
+                    changeBallType();
+                    createConfetti();
+                } else {
+                    gameOver = true;
+                    document.getElementById("finalScore").textContent = "Final Score: " + score;
+                    document.getElementById("gameOver").style.display = "block";
+                    document.getElementById("retryButton").style.display = "block";
+                }
+            }
+
+            if (rightPressed && trampolineX < canvas.width - trampolineWidth) {
+                trampolineX += 7;
+            } else if (leftPressed && trampolineX > 0) {
+                trampolineX -= 7;
+            }
+
+            x += dx;
+            y += dy;
+
+            ctx.font = "20px Arial";
+            ctx.fillStyle = "white";
+            ctx.fillText("Score: " + score, 20, 30);
+            ctx.fillText("Time: " + timeLeft, canvas.width - 100, 30);
+
+            requestAnimationFrame(draw);
+        }
+
+        function keyDownHandler(e) {
+            if (e.key === "Right" || e.key === "ArrowRight") rightPressed = true;
+            else if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = true;
+        }
+        function keyUpHandler(e) {
+            if (e.key === "Right" || e.key === "ArrowRight") rightPressed = false;
+            else if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = false;
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle("dark-theme");
+            document.body.classList.toggle("light-theme");
+            themeButton.textContent = document.body.classList.contains("dark-theme") ? "☀️" : "🌙";
+
+            gameCanvas.style.backgroundImage = document.body.classList.contains("dark-theme")
+                ? "url('./images.jpg')"
+                : "url('./images2.jpg')";
+        }
+
+        retryButton.addEventListener("click", () => document.location.reload());
+        document.addEventListener("keydown", keyDownHandler, false);
+        document.addEventListener("keyup", keyUpHandler, false);
+        draw();
+    </script>
+</body>
+
+</html>
